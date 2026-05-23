@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     max_file_lines: int = 4000
     test_case_count: int = 12
 
+    # Verifier backend selection. `subprocess` is the local sandbox path;
+    # `managed_agent` delegates to a Gemini managed-agent (google.genai).
+    verifier_backend: str = "managed_agent"
+    gemini_verifier_model: str = "gemini-3.5-flash"
+    verifier_managed_timeout_s: int = 30
+
     # Live audit
     gemini_live_model: str = "gemini-2.5-flash"
     live_max_file_lines: int = 1500
