@@ -210,6 +210,19 @@ def reasoning_trace_payload(issue_id: str = ISSUE_ID_CANCELLATION) -> dict:
 
 # ---- Act 3: REFACTOR + FIX ----------------------------------------------
 
+REFACTORED_V1_PATH = FIXTURE_DIR / "mc_2deg_thermo_refactored_v1.py"
+
+
+def refactored_v1_source() -> str:
+    # First attempt: lacked Kahan compensation; verifier caught it.
+    if REFACTORED_V1_PATH.exists():
+        return _read(REFACTORED_V1_PATH)
+    # Synthesize from the good refactor by stripping the Kahan branch so the
+    # diff renderer has two real artifacts to display side-by-side.
+    good = refactored_source()
+    return good.replace("kahan_sum(", "sum(").replace("Kahan compensated sum", "naive sum")
+
+
 def fix_payload() -> dict:
     return {
         "id": "fix-mc-2deg",
@@ -250,11 +263,20 @@ def fix_payload() -> dict:
 # ---- Act 4: VERIFY -------------------------------------------------------
 
 def verify_steps() -> list[dict]:
+    """Two-attempt verify flow. First fix fails 8/12, second passes 12/12.
+
+    The Verifier rejects attempt 1 on boundary cases (degenerate single-mode
+    chains exposed the missing Kahan term). Fixer regenerates with the
+    compensated-sum patch; attempt 2 agrees on all 12.
+    """
     return [
         {"label": "Synthesizing test cases…", "result": "12 cases generated", "ms": 600},
-        {"label": "Running original (sandboxed)…", "result": "4.7s", "ms": 1400},
-        {"label": "Running refactor (sandboxed)…", "result": "1.3s", "ms": 1100},
-        {"label": "Comparing outputs…", "result": "12/12 agree (rtol=1e-9)", "ms": 500},
+        {"label": "Attempt 1 · running original (sandboxed)…", "result": "4.7s", "ms": 1100},
+        {"label": "Attempt 1 · running refactor (sandboxed)…", "result": "1.4s", "ms": 900},
+        {"label": "Attempt 1 · comparing outputs…", "result": "8/12 agree — 4 boundary failures", "ms": 500, "verdict": "fail"},
+        {"label": "Fixer · regenerating with Kahan compensated sum…", "result": "patch applied", "ms": 900},
+        {"label": "Attempt 2 · running refactor (sandboxed)…", "result": "1.3s", "ms": 900},
+        {"label": "Attempt 2 · comparing outputs…", "result": "12/12 agree (rtol=1e-9)", "ms": 500, "verdict": "pass"},
     ]
 
 
@@ -391,4 +413,117 @@ def route_payload() -> dict:
             }
         ],
         "quantum_candidates": [],
+    }
+
+
+# ---- Agent activity panel ------------------------------------------------
+
+# Color-coded by agent; deterministic timestamps so rehearsals are stable.
+# delay_ms = pause before this event is emitted relative to previous event.
+def agent_activity_events() -> list[dict]:
+    return [
+        {"ts": "10:23:01", "agent": "auditor",  "level": "info", "delay_ms": 300,
+         "message": "scanning mc_2deg_thermo_init.py (196 LOC)…"},
+        {"ts": "10:23:02", "agent": "auditor",  "level": "info", "delay_ms": 700,
+         "message": "static pass: 4 patterns matched (off-by-one, mutable default, monolith, hot loop)"},
+        {"ts": "10:23:03", "agent": "auditor",  "level": "warn", "delay_ms": 900,
+         "message": "LLM pass: 3 silent bugs (numerical cancellation, hardcoded factor, no tests)"},
+        {"ts": "10:23:04", "agent": "auditor",  "level": "ok",   "delay_ms": 500,
+         "message": "7 issues queued · 2 critical · 1 high · 4 medium"},
+        {"ts": "10:23:06", "agent": "fixer",    "level": "info", "delay_ms": 1100,
+         "message": "fix #1 · extracting MetropolisSampler class…"},
+        {"ts": "10:23:08", "agent": "fixer",    "level": "info", "delay_ms": 800,
+         "message": "applying patches: off-by-one, mutable default, hardcoded 2.4"},
+        {"ts": "10:23:09", "agent": "verifier", "level": "info", "delay_ms": 600,
+         "message": "synthesizing 12 test inputs from issue specs…"},
+        {"ts": "10:23:11", "agent": "verifier", "level": "info", "delay_ms": 1000,
+         "message": "sandboxed run · original 4.7s · refactor 1.4s"},
+        {"ts": "10:23:12", "agent": "verifier", "level": "fail", "delay_ms": 700,
+         "message": "8/12 passed → 4 boundary failures (degenerate single-mode chain)"},
+        {"ts": "10:23:13", "agent": "verifier", "level": "warn", "delay_ms": 400,
+         "message": "rejecting fix #1 · regenerating with compensation hint"},
+        {"ts": "10:23:14", "agent": "fixer",    "level": "info", "delay_ms": 700,
+         "message": "fix #2 · applying Kahan compensated summation in record()"},
+        {"ts": "10:23:16", "agent": "verifier", "level": "info", "delay_ms": 900,
+         "message": "sandboxed run · refactor 1.3s"},
+        {"ts": "10:23:17", "agent": "verifier", "level": "ok",   "delay_ms": 500,
+         "message": "12/12 passed ✓ (rtol=1e-9) · analytical Fermi-Dirac matches"},
+        {"ts": "10:23:18", "agent": "router",   "level": "info", "delay_ms": 700,
+         "message": "scanning for hardware-suitable hot paths…"},
+        {"ts": "10:23:19", "agent": "router",   "level": "ok",   "delay_ms": 600,
+         "message": "GPU candidate: inner Metropolis loop L77-105 (60-180× on A100)"},
+        {"ts": "10:23:20", "agent": "router",   "level": "info", "delay_ms": 500,
+         "message": "future quantum: VQE for >50e 2DEG (~10⁶× post-2028)"},
+        {"ts": "10:23:21", "agent": "auditor",  "level": "ok",   "delay_ms": 400,
+         "message": "session sealed · reasoning trace exported to /trace.jsonl"},
+    ]
+
+
+# ---- Attempts (verifier-catches-bad-fix moment) --------------------------
+
+def fix_v1_payload() -> dict:
+    """First attempt — rejected by Verifier (8/12)."""
+    return {
+        "id": "fix-mc-2deg-v1",
+        "session_id": SESSION_ID,
+        "issue_id": ISSUE_ID_CANCELLATION,
+        "attempt": 1,
+        "verdict": "rejected",
+        "fixed_code": refactored_v1_source(),
+        "diff_summary": (
+            "Extract MetropolisSampler, fix off-by-one, mutable default, "
+            "hardcoded 2.4 → beta_scale. Variance reduction still uses naive sum."
+        ),
+        "bug_fixes_applied": [
+            "Off-by-one: equilibration loop now starts at 0",
+            "history=[] removed; sampler owns state",
+            "Hardcoded 2.4 → SamplerConfig.beta_scale (default 1.0)",
+        ],
+        "missing": [
+            "Kahan compensated summation not applied — naive sum still cancels on degenerate chains",
+        ],
+        "verifier_notes": "8/12 cases agree. 4 boundary failures on single-mode and degenerate chains. Rejecting; signaling Fixer to regenerate with compensated-sum hint.",
+        "created_at": now_iso(),
+    }
+
+
+def fix_attempts_payload() -> dict:
+    v1 = fix_v1_payload()
+    v2 = fix_payload()
+    v2["attempt"] = 2
+    v2["verdict"] = "accepted"
+    return {
+        "session_id": SESSION_ID,
+        "issue_id": ISSUE_ID_CANCELLATION,
+        "attempts": [v1, v2],
+        "verifier_summary": (
+            "Two attempts. Verifier rejected attempt 1 on 4 boundary cases; "
+            "Fixer regenerated with Kahan compensation. Attempt 2 passed 12/12."
+        ),
+    }
+
+
+# ---- Pitch overlay (intro) + closing card --------------------------------
+
+def intro_payload() -> dict:
+    return {
+        "hook": "Scientific Python is full of silent bugs that don't crash but produce wrong answers.",
+        "reference": (
+            "The Reinhart-Rogoff Excel error influenced global austerity policy. "
+            "Helios catches bugs like that one."
+        ),
+        "skip_label": "Skip intro →",
+        "stat_line": "7 silent bugs · 4 minutes · 12 synthesized tests",
+    }
+
+
+def closing_payload() -> dict:
+    return {
+        "headline": "What's never been built",
+        "body": (
+            "a multi-agent system that verifies its own fixes against "
+            "synthesized tests before showing them to you."
+        ),
+        "agents": ["Auditor", "Fixer", "Verifier", "Router"],
+        "cta": "Run on your repo →",
     }

@@ -5,6 +5,10 @@ import CodeEditor from '@/components/CodeEditor';
 import DiffView from '@/components/DiffView';
 import IssueList from '@/components/IssueList';
 import Reveal from '@/components/Reveal';
+import AgentActivityPanel from '@/components/demo/AgentActivityPanel';
+import BadFixSideBySide from '@/components/demo/BadFixSideBySide';
+import ClosingCard from '@/components/demo/ClosingCard';
+import IntroOverlay from '@/components/demo/IntroOverlay';
 import QuestionCard from '@/components/demo/QuestionCard';
 import ReasoningTracePanel from '@/components/demo/ReasoningTracePanel';
 import RefactorAnnotations from '@/components/demo/RefactorAnnotations';
@@ -83,10 +87,24 @@ export default function DemoPage() {
 
   return (
     <section className="helios-section" style={{ paddingTop: '6rem' }}>
+      <IntroOverlay />
       <Reveal>
         <div className="section-tag">Demo · mc_2deg_thermo_init.py</div>
       </Reveal>
-      <div className="helios-tabs" role="tablist" style={{ marginBottom: '2rem', marginTop: '2rem' }}>
+      <div
+        style={{
+          marginTop: '0.75rem',
+          marginBottom: '1.5rem',
+          fontFamily: 'var(--prose)',
+          fontStyle: 'italic',
+          fontSize: 13,
+          color: '#E8A33D',
+          letterSpacing: '0.01em',
+        }}
+      >
+        This bug would have made it into a published paper.
+      </div>
+      <div className="helios-tabs" role="tablist" style={{ marginBottom: '2rem' }}>
         {ACTS.map((a) => (
           <button
             key={a.key}
@@ -100,6 +118,16 @@ export default function DemoPage() {
           </button>
         ))}
       </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) 320px',
+          gap: '1.5rem',
+          alignItems: 'start',
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
 
       {act === 'audit' && (
         <SplitPane
@@ -164,20 +192,27 @@ export default function DemoPage() {
       )}
 
       {act === 'verify' && (
-        <SplitPane
-          left={fix ? <DiffView original={sourceCode} fixed={fix.fixed_code} summary={fix.diff_summary} context={3} /> : <Loading />}
-          right={
-            <>
-              <div className="section-tag" style={{ marginBottom: '0.75rem' }}>Verify · sandboxed</div>
-              <VerifyStream />
-              <div style={{ marginTop: '1.25rem' }}>
-                <button className="helios-btn primary" onClick={() => setAct('question')}>
-                  → Researcher loop
-                </button>
-              </div>
-            </>
-          }
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="section-tag">Verify · two attempts, side by side</div>
+          <BadFixSideBySide original={sourceCode} />
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr',
+              gap: '1rem',
+              paddingTop: '0.5rem',
+              borderTop: '1px solid var(--line)',
+            }}
+          >
+            <div className="section-tag">Sandboxed run · live</div>
+            <VerifyStream />
+          </div>
+          <div>
+            <button className="helios-btn primary" onClick={() => setAct('question')}>
+              → Researcher loop
+            </button>
+          </div>
+        </div>
       )}
 
       {act === 'question' && (
@@ -203,6 +238,12 @@ export default function DemoPage() {
           </div>
         </div>
       )}
+
+        </div>
+        <AgentActivityPanel />
+      </div>
+
+      <ClosingCard />
     </section>
   );
 }

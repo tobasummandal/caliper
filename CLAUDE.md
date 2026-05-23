@@ -45,3 +45,13 @@ CONSTRAINTS:
 TESTING:
 - After changes, run the full demo end-to-end at least once
 - Add a smoke test that ensures the demo loads and the agent panel renders within 3 seconds
+
+5. MIGRATE VERIFIER TO MANAGED AGENTS API
+   - In backend/helios/verifier.py, add a new code path that uses
+     google.genai's managed agents API (Antigravity agent) to run verification
+   - Keep the existing subprocess path as a fallback flag
+   - The managed agent should: receive original code + fixed code + test inputs,
+     run both, compare outputs, return JSON verdict
+   - Use Gemini 3.5 Flash as the model
+   - Add a config flag VERIFIER_BACKEND={subprocess|managed_agent} defaulting to managed_agent
+   - Reference: https://ai.google.dev/gemini-api/docs/managed-agents-quickstart

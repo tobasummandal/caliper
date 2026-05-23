@@ -101,15 +101,46 @@ async function get<T>(path: string): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+export type DemoFixAttempt = DemoFix & {
+  attempt: 1 | 2;
+  verdict: 'rejected' | 'accepted';
+  missing?: string[];
+  verifier_notes?: string;
+};
+
+export type DemoFixAttempts = {
+  session_id: string;
+  issue_id: string;
+  attempts: DemoFixAttempt[];
+  verifier_summary: string;
+};
+
+export type DemoIntro = {
+  hook: string;
+  reference: string;
+  skip_label: string;
+  stat_line: string;
+};
+
+export type DemoClosing = {
+  headline: string;
+  body: string;
+  agents: string[];
+  cta: string;
+};
+
 export const demoApi = {
   createSession: () => fetch(`${BASE}/sessions`, { method: 'POST' }).then((r) => r.json() as Promise<DemoSession>),
   getSession: (id: string) => get<DemoSession>(`/sessions/${id}`),
   audit: () => get<DemoIssue[]>('/audit'),
   trace: (issueId: string) => get<DemoTrace>(`/issues/${issueId}/trace`),
   fix: () => get<DemoFix>('/fix'),
+  fixAttempts: () => get<DemoFixAttempts>('/fix/attempts'),
   verify: () => get<DemoVerify>('/verify'),
   question: () => get<DemoQuestion>('/question'),
   route: () => get<DemoRoute>('/route'),
+  intro: () => get<DemoIntro>('/intro'),
+  closing: () => get<DemoClosing>('/closing'),
   answerQuestion: (answer: Record<string, string>) =>
     fetch(`${BASE}/question/answer`, {
       method: 'POST',

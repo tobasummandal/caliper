@@ -81,6 +81,34 @@ def demo_route() -> dict:
     return payloads.route_payload()
 
 
+@router.get("/fix/attempts")
+def demo_fix_attempts() -> dict:
+    return payloads.fix_attempts_payload()
+
+
+@router.get("/intro")
+def demo_intro() -> dict:
+    return payloads.intro_payload()
+
+
+@router.get("/closing")
+def demo_closing() -> dict:
+    return payloads.closing_payload()
+
+
+@router.get("/agent_activity/stream")
+async def demo_agent_activity_stream() -> StreamingResponse:
+    events = payloads.agent_activity_events()
+
+    async def gen():
+        for i, ev in enumerate(events):
+            await asyncio.sleep(ev["delay_ms"] / 1000)
+            yield f"event: activity\ndata: {json.dumps({'index': i, **ev})}\n\n"
+        yield "event: end\ndata: {}\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
+
+
 @router.get("/trace.jsonl", response_class=PlainTextResponse)
 def demo_trace_jsonl() -> str:
     trace = payloads.reasoning_trace_payload()

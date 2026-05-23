@@ -3,15 +3,20 @@
 @tailwind utilities;
 
 :root {
-  --bg: #07090d;
-  --bg-1: #0c1118;
-  --fg: #f3ece0;
-  --dim: #6e7787;
-  --line: #1a2230;
+  /* Single-accent dark palette. Amber is the only chromatic color; everything
+     else is neutral. Inspired by editorial / B2B minimalism (litmushiring). */
+  --bg: #0a0a0a;
+  --bg-1: #121212;
+  --bg-2: #1a1a1a;
+  --fg: #f0ece4;
+  --fg-muted: #b8b3a8;
+  --dim: #6c6c6c;
+  --dimmer: #3a3a3a;
+  --line: #1f1f1f;
   --sun: #E8A33D;
   --sun-warm: #f4c46b;
-  --wrong: #E94F37;
-  --right: #7FE0E0;
+  --wrong: #9c8378;   /* muted warm gray — semantic only, not loud */
+  --right: #b8b3a8;   /* neutral cream — replaces former cyan */
   --mono: 'JetBrains Mono', ui-monospace, monospace;
   --serif: 'Fraunces', Georgia, serif;
   --prose: 'Inter', system-ui, -apple-system, sans-serif;
