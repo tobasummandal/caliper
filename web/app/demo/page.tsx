@@ -27,13 +27,13 @@ import type { Issue } from '@/lib/types';
 
 type Act = 'audit' | 'trace' | 'refactor' | 'verify' | 'question' | 'route';
 
-const ACTS: { key: Act; label: string; subtitle: string }[] = [
-  { key: 'audit', label: '01 · audit', subtitle: 'silent bugs, twelve seconds' },
-  { key: 'trace', label: '02 · reasoning trace', subtitle: 'the moat, made tangible' },
-  { key: 'refactor', label: '03 · refactor + fix', subtitle: 'research → production' },
-  { key: 'route', label: '04 · route', subtitle: 'GPU today, quantum tomorrow' },
-  { key: 'verify', label: '05 · verify', subtitle: '12/12 cases agree' },
-  { key: 'question', label: '06 · researcher loop', subtitle: 'Helios has a question' },
+const ACTS: { key: Act; n: string; label: string; subtitle: string }[] = [
+  { key: 'audit',    n: '01', label: 'Audit',           subtitle: 'silent bugs, twelve seconds' },
+  { key: 'trace',    n: '02', label: 'Reasoning trace', subtitle: 'the moat, made tangible' },
+  { key: 'refactor', n: '03', label: 'Refactor + fix',  subtitle: 'research → production' },
+  { key: 'route',    n: '04', label: 'Route',           subtitle: 'GPU today, quantum tomorrow' },
+  { key: 'verify',   n: '05', label: 'Verify',          subtitle: 'rejects bad fix, regenerates, agrees 12/12' },
+  { key: 'question', n: '06', label: 'Researcher loop', subtitle: 'Helios has a question' },
 ];
 
 function toIssue(d: DemoIssue): Issue {
@@ -85,38 +85,170 @@ export default function DemoPage() {
   const highlightLines = useMemo(() => issues.map((i) => i.line_start), [issues]);
   const sourceCode = session?.source_code || '';
 
+  const current = ACTS.find((a) => a.key === act)!;
+
   return (
-    <section className="helios-section" style={{ paddingTop: '6rem' }}>
+    <section className="helios-section" style={{ paddingTop: '6rem', paddingBottom: '4rem' }}>
       <IntroOverlay />
+
+      {/* Editorial header */}
       <Reveal>
-        <div className="section-tag">Demo · mc_2deg_thermo_init.py</div>
+        <div className="section-tag" style={{ marginBottom: '1.5rem' }}>— live demo · mc_2deg_thermo_init.py</div>
       </Reveal>
+      <Reveal delay={1}>
+        <h1
+          style={{
+            fontFamily: 'var(--prose)',
+            fontWeight: 300,
+            fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+            lineHeight: 1.05,
+            letterSpacing: '-0.025em',
+            color: 'var(--fg)',
+            marginBottom: '1rem',
+            maxWidth: 980,
+          }}
+        >
+          Watch the agents work.
+        </h1>
+      </Reveal>
+      <Reveal delay={2}>
+        <p
+          style={{
+            fontFamily: 'var(--prose)',
+            fontSize: 15,
+            color: 'var(--fg-muted)',
+            maxWidth: 620,
+            lineHeight: 1.6,
+            marginBottom: '0.75rem',
+          }}
+        >
+          A Monte Carlo simulation of a 2D electron gas. Seven silent bugs in
+          196 lines. Helios catches them, rewrites the file, and proves the
+          fix on synthesized tests.
+        </p>
+      </Reveal>
+      <Reveal delay={2}>
+        <p
+          style={{
+            fontFamily: 'var(--prose)',
+            fontStyle: 'italic',
+            fontSize: 13,
+            color: 'var(--sun)',
+            letterSpacing: '0.005em',
+            marginBottom: '3rem',
+          }}
+        >
+          This bug would have made it into a published paper.
+        </p>
+      </Reveal>
+
+      {/* Numbered act selector — litmus-inspired step row */}
       <div
+        role="tablist"
         style={{
-          marginTop: '0.75rem',
-          marginBottom: '1.5rem',
-          fontFamily: 'var(--prose)',
-          fontStyle: 'italic',
-          fontSize: 13,
-          color: '#E8A33D',
-          letterSpacing: '0.01em',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(6, 1fr)',
+          borderTop: '1px solid var(--line)',
+          borderBottom: '1px solid var(--line)',
+          marginBottom: '3rem',
         }}
       >
-        This bug would have made it into a published paper.
+        {ACTS.map((a, i) => {
+          const active = act === a.key;
+          return (
+            <button
+              key={a.key}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setAct(a.key)}
+              title={a.subtitle}
+              style={{
+                background: active ? 'var(--bg-1)' : 'transparent',
+                border: 'none',
+                borderLeft: i === 0 ? 'none' : '1px solid var(--line)',
+                color: active ? 'var(--fg)' : 'var(--dim)',
+                textAlign: 'left',
+                padding: '1.25rem 1.25rem',
+                cursor: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.4rem',
+                position: 'relative',
+                transition: 'background 0.2s ease, color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!active) (e.currentTarget as HTMLButtonElement).style.color = 'var(--fg)';
+              }}
+              onMouseLeave={(e) => {
+                if (!active) (e.currentTarget as HTMLButtonElement).style.color = 'var(--dim)';
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: 'var(--mono)',
+                  fontSize: 10,
+                  letterSpacing: '0.25em',
+                  color: active ? 'var(--sun)' : 'var(--dimmer)',
+                }}
+              >
+                {a.n}
+              </span>
+              <span
+                style={{
+                  fontFamily: 'var(--prose)',
+                  fontSize: 14,
+                  fontWeight: 400,
+                  letterSpacing: '-0.005em',
+                }}
+              >
+                {a.label}
+              </span>
+              {active && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -1,
+                    left: 0,
+                    right: 0,
+                    height: 1,
+                    background: 'var(--sun)',
+                  }}
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
-      <div className="helios-tabs" role="tablist" style={{ marginBottom: '2rem' }}>
-        {ACTS.map((a) => (
-          <button
-            key={a.key}
-            role="tab"
-            aria-selected={act === a.key}
-            className={`helios-tab ${act === a.key ? 'active' : ''}`}
-            onClick={() => setAct(a.key)}
-            title={a.subtitle}
-          >
-            {a.label}
-          </button>
-        ))}
+
+      {/* Current-act header */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div
+          style={{
+            fontFamily: 'var(--mono)',
+            fontSize: 10,
+            letterSpacing: '0.28em',
+            color: 'var(--sun)',
+            marginBottom: '0.5rem',
+            textTransform: 'uppercase',
+          }}
+        >
+          {current.n} / 06
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--prose)',
+            fontWeight: 300,
+            fontSize: 'clamp(1.75rem, 3.4vw, 2.5rem)',
+            letterSpacing: '-0.02em',
+            color: 'var(--fg)',
+            marginBottom: '0.4rem',
+          }}
+        >
+          {current.label}.
+        </h2>
+        <p style={{ fontFamily: 'var(--prose)', fontSize: 14, color: 'var(--fg-muted)' }}>
+          {current.subtitle}
+        </p>
       </div>
 
       <div
